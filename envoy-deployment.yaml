@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envoy-proxy
+  namespace: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: envoy-proxy
+  template:
+    metadata:
+      labels:
+        app: envoy-proxy
+    spec:
+      containers:
+      - name: envoy
+        image: envoyproxy/envoy:v1.28-latest
+        ports:
+        - containerPort: 10000
+        volumeMounts:
+        - name: envoy-config
+          mountPath: /etc/envoy
+        command: ["/usr/local/bin/envoy"]
+        args: ["-c", "/etc/envoy/envoy.yaml"]
+      volumes:
+      - name: envoy-config
+        configMap:
+          name: envoy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: envoy-proxy
+  namespace: demo
+spec:
+  selector:
+    app: envoy-proxy
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 10000
+  type: ClusterIP
