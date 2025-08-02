@@ -8,8 +8,11 @@ func GetUserByEmail(email string) (User, error) {
 	return user, nil
 }
 
-func createUser(user User) {
-	DB.Create(&user)
+func createUser(user *User) error {
+	if err := DB.Create(user).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func GetUserByID(id string) (User, error) {

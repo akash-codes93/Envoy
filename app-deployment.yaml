@@ -9,7 +9,7 @@ metadata:
   name: api-server
   namespace: demo
 spec:
-  replicas: 2
+  replicas: 1 # for now 1 because db is created inside the pod which causes datamismatch
   selector:
     matchLabels:
       app: api-server

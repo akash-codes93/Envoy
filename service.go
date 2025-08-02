@@ -20,11 +20,15 @@ func loginUser(c *gin.Context) {
 
 	if err != nil && err.Error() == "record not found" {
 		log.Info("User not found, creating new user")
-		user := User{
+		user = User{
 			Email:    loginRequest.Email,
 			Password: loginRequest.Password,
 		}
-		createUser(user)
+		if err := createUser(&user); err != nil {
+			log.Error("Error creating user", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
 		isUserCreated = true
 	} else if err != nil {
 		log.Error("Error getting user by email", err)

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envoy-proxy
+  namespace: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: envoy-proxy
+  template:
+    metadata:
+      labels:
+        app: envoy-proxy
+    spec:
+      serviceAccountName: envoy-sa
+      initContainers:
+      - name: blocklist-fetcher
+        image: busybox
+        command: 
+        - /bin/sh
+        - -c
+        - |
+          echo "Fetching blocklist files..."
+          # For local testing, creating sample files
+          echo "uid" > /blocklist/blocked_users.csv
+          echo "999" >> /blocklist/blocked_users.csv
+          echo "1001" >> /blocklist/blocked_users.csv
+          echo "5000" >> /blocklist/blocked_users.csv
+          echo "2" >> /blocklist/blocked_users.csv
+          
+          echo "device_id" > /blocklist/blocked_devices.csv
+          echo "device-banned-1" >> /blocklist/blocked_devices.csv
+          echo "test-device-999" >> /blocklist/blocked_devices.csv
+          
+          echo "Blocklist files created successfully"
+          ls -la /blocklist/
+        volumeMounts:
+        - name: blocklist-volume
+          mountPath: /blocklist
+      containers:
+      - name: envoy
+        image: envoyproxy/envoy:v1.28-latest
+        ports:
+        - containerPort: 10000
+        volumeMounts:
+        - name: envoy-config
+          mountPath: /etc/envoy
+        - name: blocklist-volume
+          mountPath: /blocklist  # Fixed: same path as init container
+          readOnly: true
+        command: ["/usr/local/bin/envoy"]
+        args: ["-c", "/etc/envoy/envoy.yaml"]
+      volumes:
+      - name: envoy-config
+        configMap:
+          name: envoy-config
+      - name: blocklist-volume
+        emptyDir: {}
