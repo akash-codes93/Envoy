@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jwt-whitelist
+  namespace: demo
+data:
+  list.txt: |
+    /login
+    /v1/health
+    /v1/auth/callback

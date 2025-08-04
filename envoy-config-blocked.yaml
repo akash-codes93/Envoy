@@ -45,10 +45,6 @@ data:
                       clock_skew_seconds: 60
                   rules:
                   - match:
-                      path: "/login"
-                  - match:
-                      path: "/ping"
-                  - match:
                       prefix: "/"
                     requires:
                       provider_name: "local_provider"
@@ -60,6 +56,7 @@ data:
                       -- Load blocklist from CSV files
                       local blocked_users = {}
                       local blocked_devices = {}
+                      local whitelisted_paths = {}
                       
                       -- Function to load CSV
                       function load_csv(filename, table)
@@ -81,14 +78,42 @@ data:
                         end
                         return false
                       end
+
+                      function load_whitelist()
+                        local file = io.open("/whitelist/list.txt", "r")
+                        if file then
+                          for line in file:lines() do
+                            -- Skip empty lines and comments
+                            local path = line:match("^%s*([^#]*)%s*$")
+                            if path and path ~= "" then
+                              whitelisted_paths[path] = true
+                              print("LUA: Whitelisted path: " .. path)
+                            end
+                          end
+                          file:close()
+                          print("LUA: Whitelist loaded successfully")
+                        else
+                          print("LUA: Warning - Could not load whitelist file")
+                        end
+                      end
                       
                       -- Load blocklists on startup
                       load_csv("/blocklist/blocked_users.csv", blocked_users)
                       load_csv("/blocklist/blocked_devices.csv", blocked_devices)
+                      load_whitelist()
                       
                       function envoy_on_request(request_handle)
                         local start_time = os.clock()
                         request_handle:logInfo("LUA: Processing request")
+
+                        local path = request_handle:headers():get(":path")
+                        
+                        -- Check if path is whitelisted
+                        if path and whitelisted_paths[path] then
+                          print("LUA: Path " .. path .. " is whitelisted, skipping JWT")
+                          -- Add a header to indicate JWT should be skipped
+                          request_handle:headers():add("x-skip-jwt", "true")
+                        end
                         
                         -- Get JWT metadata
                         local meta = request_handle:streamInfo():dynamicMetadata()

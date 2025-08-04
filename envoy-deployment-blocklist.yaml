@@ -49,6 +49,9 @@ spec:
         - name: blocklist-volume
           mountPath: /blocklist  # Fixed: same path as init container
           readOnly: true
+        - name: whitelist-volume
+          mountPath: /whitelist
+          readOnly: true
         command: ["/usr/local/bin/envoy"]
         args: ["-c", "/etc/envoy/envoy.yaml"]
       volumes:
@@ -57,6 +60,9 @@ spec:
           name: envoy-config
       - name: blocklist-volume
         emptyDir: {}
+      - name: whitelist-volume
+        configMap:
+          name: jwt-whitelist
 
 ---
 apiVersion: v1
